@@ -1,0 +1,5 @@
+{
+  "name": "打字猴 (Typing Monkey)",
+  "description": "一个优雅的文章打字练习网站，支持多种文章选择、实时速度与准确率统计。",
+  "requestFramePermissions": []
+}
