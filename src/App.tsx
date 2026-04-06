@@ -52,10 +52,11 @@ const normalizeInput = (input: string, target: string) => {
     
     if (expected) {
       const pairs: Record<string, string[]> = {
-        '"': ['“', '”'],
+        '"': ['“', '”', '＂'],
         "'": ['‘', '’'],
-        '“': ['”', '"'],
-        '”': ['“', '"'],
+        '“': ['”', '"', '＂'],
+        '”': ['“', '"', '＂'],
+        '＂': ['“', '”', '"'],
         '‘': ['’', "'"],
         '’': ['‘', "'"],
         ',': ['，'],
@@ -271,27 +272,36 @@ export default function App() {
     playClick();
 
     let value = e.target.value;
-    const cursorPosition = e.target.selectionStart;
-    
-    // If the OS inserted auto-paired quotes (like “”), the cursor will be before the closing quote.
-    // Or if the user moved the cursor back and typed, we want to discard everything after the cursor
-    // to maintain a linear typing experience.
-    if (cursorPosition !== null && cursorPosition < value.length) {
-      value = value.slice(0, cursorPosition);
-    }
     
     if (!isComposing.current) {
-      value = normalizeInput(value, currentArticle.content);
+      let processedValue = value;
+      
+      // Fix for IME auto-paired punctuation (e.g., typing " outputs “”)
+      const autoPairs = ['“”', '""', '‘’', "''", '《》', '<>', '（）', '()', '【】', '[]', '{}', '｛｝'];
+      for (const pair of autoPairs) {
+        if (processedValue.endsWith(pair)) {
+          const expectedChar = currentArticle.content[processedValue.length - 1];
+          const isPunctuation = ['"', "'", '“', '”', '‘', '’', '《', '》', '<', '>', '（', '）', '(', ')', '【', '】', '[', ']', '{', '}', '｛', '｝', '＂'].includes(expectedChar);
+          if (!isPunctuation) {
+            processedValue = processedValue.slice(0, -1);
+            value = value.slice(0, -1); // Remove from raw value as well so next input appends correctly
+            break;
+          }
+        }
+      }
 
-      if (value.length > currentArticle.content.length) {
-        value = value.slice(0, currentArticle.content.length);
+      processedValue = normalizeInput(processedValue, currentArticle.content);
+
+      if (processedValue.length > currentArticle.content.length) {
+        processedValue = processedValue.slice(0, currentArticle.content.length);
+        value = value.slice(0, currentArticle.content.length); // Also truncate raw value to prevent infinite growth
       }
       
       setInputValue(value);
-      setUserInput(value);
+      setUserInput(processedValue);
 
       // Start timer on first keystroke
-      if (!isStarted && (value.length > 0 || startTime)) {
+      if (!isStarted && (processedValue.length > 0 || startTime)) {
         setIsStarted(true);
         if (!startTime) {
           setStartTime(Date.now());
@@ -304,12 +314,19 @@ export default function App() {
       }
 
       // Check if finished
-      if (value.length === currentArticle.content.length) {
-        handleFinish(value);
+      if (processedValue.length === currentArticle.content.length) {
+        handleFinish(processedValue);
         playSuccess();
       }
     } else {
       setInputValue(value);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent arrow keys to maintain linear typing experience
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
     }
   };
 
@@ -323,24 +340,35 @@ export default function App() {
     playClick();
     
     let value = e.currentTarget.value;
-    const cursorPosition = e.currentTarget.selectionStart;
+    let processedValue = value;
     
-    if (cursorPosition !== null && cursorPosition < value.length) {
-      value = value.slice(0, cursorPosition);
+    // Fix for IME auto-paired punctuation
+    const autoPairs = ['“”', '""', '‘’', "''", '《》', '<>', '（）', '()', '【】', '[]', '{}', '｛｝'];
+    for (const pair of autoPairs) {
+      if (processedValue.endsWith(pair)) {
+        const expectedChar = currentArticle.content[processedValue.length - 1];
+        const isPunctuation = ['"', "'", '“', '”', '‘', '’', '《', '》', '<', '>', '（', '）', '(', ')', '【', '】', '[', ']', '{', '}', '｛', '｝', '＂'].includes(expectedChar);
+        if (!isPunctuation) {
+          processedValue = processedValue.slice(0, -1);
+          value = value.slice(0, -1); // Remove from raw value as well
+          break;
+        }
+      }
     }
     
     if (isFinished) return;
 
-    value = normalizeInput(value, currentArticle.content);
+    processedValue = normalizeInput(processedValue, currentArticle.content);
 
-    if (value.length > currentArticle.content.length) {
+    if (processedValue.length > currentArticle.content.length) {
+      processedValue = processedValue.slice(0, currentArticle.content.length);
       value = value.slice(0, currentArticle.content.length);
     }
 
     setInputValue(value);
-    setUserInput(value);
+    setUserInput(processedValue);
 
-    if (!isStarted && (value.length > 0 || startTime)) {
+    if (!isStarted && (processedValue.length > 0 || startTime)) {
       setIsStarted(true);
       if (!startTime) {
         setStartTime(Date.now());
@@ -352,8 +380,8 @@ export default function App() {
       }
     }
 
-    if (value.length === currentArticle.content.length) {
-      handleFinish(value);
+    if (processedValue.length === currentArticle.content.length) {
+      handleFinish(processedValue);
       playSuccess();
     }
   };
@@ -510,6 +538,7 @@ export default function App() {
           }}
           value={inputValue}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
           onBlur={() => {
