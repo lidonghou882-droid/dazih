@@ -628,7 +628,7 @@ export default function App() {
           </motion.div>
         ) : (
           <div className="max-w-4xl w-full relative">
-            <div className="text-3xl leading-[1.8] font-bold tracking-wide text-justify select-none font-sans">
+            <div className="text-3xl leading-[1.8] font-bold tracking-wide text-justify select-none font-sans break-all">
               {currentArticle.content.split('').map((char, index) => {
                 let status = 'char-default';
                 if (index < userInput.length) {
