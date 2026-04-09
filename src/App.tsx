@@ -20,7 +20,7 @@ import {
   Pause
 } from 'lucide-react';
 import { Article, TypingStats, TypingRecord } from './types';
-import { ARTICLES } from './constants';
+import { ARTICLES, CATEGORIES } from './constants';
 
 // --- Custom Icons ---
 const MonkeyIcon = ({ className }: { className?: string }) => (
@@ -133,7 +133,7 @@ export default function App() {
   const [isFinished, setIsFinished] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [difficultyFilter, setDifficultyFilter] = useState<'全部' | '简单' | '困难'>('全部');
+  const [categoryFilter, setCategoryFilter] = useState<string>('全部');
   const [isFocused, setIsFocused] = useState(true);
   const [records, setRecords] = useState<TypingRecord[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -465,9 +465,9 @@ export default function App() {
   };
 
   const filteredArticles = useMemo(() => {
-    if (difficultyFilter === '全部') return ARTICLES;
-    return ARTICLES.filter(a => a.difficulty === difficultyFilter);
-  }, [difficultyFilter]);
+    if (categoryFilter === '全部') return ARTICLES;
+    return ARTICLES.filter(a => a.category === categoryFilter);
+  }, [categoryFilter]);
 
   return (
     <div 
@@ -768,13 +768,13 @@ export default function App() {
               <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">选择练习文章</h2>
-                  <div className="flex items-center gap-4 mt-3">
-                    {(['全部', '简单', '困难'] as const).map(filter => (
+                  <div className="flex items-center gap-4 mt-3 flex-wrap">
+                    {CATEGORIES.map(filter => (
                       <button
                         key={filter}
-                        onClick={() => setDifficultyFilter(filter)}
+                        onClick={() => setCategoryFilter(filter)}
                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                          difficultyFilter === filter 
+                          categoryFilter === filter 
                             ? 'bg-[#6366f1] text-white shadow-md shadow-indigo-200' 
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
@@ -812,12 +812,7 @@ export default function App() {
                           <MonkeyIcon className="w-6 h-6" />
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{article.category}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            article.difficulty === '简单' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'
-                          }`}>
-                            {article.difficulty}
-                          </span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded-md">{article.category}</span>
                         </div>
                       </div>
                       <h3 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-[#6366f1] transition-colors line-clamp-1">《{article.title}》</h3>
@@ -864,21 +859,21 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar relative">
                 {records.length === 0 ? (
-                  <div className="h-64 flex flex-col items-center justify-center text-gray-400 gap-4">
+                  <div className="h-64 flex flex-col items-center justify-center text-gray-400 gap-4 mt-10">
                     <History className="w-12 h-12 opacity-20" />
                     <p>暂无练习记录，快去开始第一次练习吧！</p>
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 bg-white z-10">
                       <tr className="text-[10px] uppercase tracking-widest text-gray-300 font-bold border-b border-gray-50">
-                        <th className="pb-6 pl-4">文章标题</th>
-                        <th className="pb-6">用时</th>
-                        <th className="pb-6">速度 (CPM)</th>
-                        <th className="pb-6">正确率</th>
-                        <th className="pb-6 pr-4 text-right">时间</th>
+                        <th className="py-6 pl-4">文章标题</th>
+                        <th className="py-6">用时</th>
+                        <th className="py-6">速度 (CPM)</th>
+                        <th className="py-6">正确率</th>
+                        <th className="py-6 pr-4 text-right">时间</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
